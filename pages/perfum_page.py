@@ -10,7 +10,7 @@ class ParfumPage(BasePage):
     ACCEPT_ALL_BUTTON_SELECTOR = "button[data-testid='uc-accept-all-button']"
     PRODUCT_SELECT = (By.XPATH, "//*[text()='{}']")
     PRODUCT_BY_VALUE = (By.XPATH, "//*[text()='{}']//ancestor::a[@role='checkbox']/span")
-
+    POPUP_CLOSE = (By.XPATH, "//span[text()='Deine Meinung ist gefragt']//parent::div/button")
     def accept_cookies(self):
         """Waits for the page and shadow DOM to fully load, then accepts cookies."""
         wait = WebDriverWait(self.driver, 15)
@@ -29,6 +29,7 @@ class ParfumPage(BasePage):
         wait.until(EC.element_to_be_clickable(accept_button))
         accept_button.click()
         self.click_element(self.PARFUM_BUTTON)
+        self.click_element(self.POPUP_CLOSE)
 
     def wait_for_page_load(self):
         """Waits until the page is fully loaded (no ongoing AJAX requests)."""

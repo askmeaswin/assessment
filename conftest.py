@@ -1,6 +1,7 @@
 import pytest
 from selenium import webdriver
 from utils.data_loader import load_config
+from utils.screen_recorder import ScreenRecorder
 
 config = load_config()
 driver = None
@@ -18,3 +19,10 @@ def setup(request):
     request.cls.driver = driver
     yield
     driver.quit()
+
+@pytest.fixture(scope="function", autouse=True)
+def record_video():
+    recorder = ScreenRecorder()
+    recorder.start_recording()
+    yield
+    recorder.stop_recording()
