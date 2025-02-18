@@ -18,8 +18,6 @@ class ParfumPage(BasePage):
         shadow_host = wait.until(EC.presence_of_element_located(self.COOKIE_BANNER))
 
         wait.until(lambda driver: self.driver.execute_script("return arguments[0].shadowRoot", shadow_host) is not None)
-
-        # accept_button = find_element_in_shadow_root(self.driver, shadow_host, self.ACCEPT_ALL_BUTTON_SELECTOR)
         accept_button = wait.until(lambda driver: driver.execute_script(
             "return arguments[0].shadowRoot.querySelector(arguments[1])",
             shadow_host, self.ACCEPT_ALL_BUTTON_SELECTOR

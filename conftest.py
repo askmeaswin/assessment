@@ -2,6 +2,7 @@ import pytest
 from selenium import webdriver
 from utils.data_loader import load_config
 from utils.screen_recorder import ScreenRecorder
+from utils.logger import test_logger
 
 config = load_config()
 driver = None
@@ -26,3 +27,9 @@ def record_video():
     recorder.start_recording()
     yield
     recorder.stop_recording()
+
+@pytest.fixture(scope="function", autouse=True)
+def log_test_start_and_end(request):
+    test_logger.info(f"Starting test: {request.node.name}")
+    yield
+    test_logger.info(f"Test completed: {request.node.name}")
