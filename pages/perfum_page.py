@@ -12,8 +12,8 @@ class ParfumPage(BasePage):
     PRODUCT_SELECT = (By.XPATH, "//*[text()='{}']")
     PRODUCT_BY_VALUE = (By.XPATH, "//*[text()='{}']//ancestor::a[@role='checkbox']/span")
     POPUP_CLOSE = (By.XPATH, "//span[text()='Deine Meinung ist gefragt']//parent::div/button")
+    PRODUCT_NAME_TEXT = (By.XPATH, "//button[text()='{}']")
     def accept_cookies(self):
-        """Waits for the page and shadow DOM to fully load, then accepts cookies."""
         wait = WebDriverWait(self.driver, 15)
         try:
             shadow_host = wait.until(EC.presence_of_element_located(self.COOKIE_BANNER))
@@ -38,14 +38,12 @@ class ParfumPage(BasePage):
             raise
 
     def wait_for_page_load(self):
-        """Waits until the page is fully loaded (no ongoing AJAX requests)."""
         WebDriverWait(self.driver, 15).until(
             lambda driver: driver.execute_script("return document.readyState") == "complete"
         )
         test_logger.info("Page load complete.")
 
     def select_multiple_filters(self, filters_dict):
-        """Selects multiple product filters dynamically with optimized waits."""
         wait = WebDriverWait(self.driver, 10)
         filter_items = list(filters_dict.items())
         for index, (filter_name, value) in enumerate(filter_items):
@@ -65,6 +63,8 @@ class ParfumPage(BasePage):
                 self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", value_element)
                 value_element.click()
                 test_logger.info(f"Applied filter value: {value}")
+                assert wait.until(EC.presence_of_element_located(self.PRODUCT_NAME_TEXT)), \
+                    f"Filter {value} was not successfully applied."
                 if index < len(filter_items) - 1:
                     wait.until(EC.staleness_of(value_element))
             except Exception as e:
