@@ -1,4 +1,5 @@
 import pytest
+import allure
 from selenium import webdriver
 from utils.data_loader import load_config
 from utils.screen_recorder import ScreenRecorder
@@ -33,3 +34,17 @@ def log_test_start_and_end(request):
     test_logger.info(f"Starting test: {request.node.name}")
     yield
     test_logger.info(f"Test completed: {request.node.name}")
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+
+    if report.when == "call" and report.failed:
+        driver = item.funcargs.get("driver")
+        if driver:
+            screenshot_path = f"screenshots/{item.name}.png"
+            driver.save_screenshot(screenshot_path)
+            with open(screenshot_path, "rb") as f:
+                allure.attach(f.read(), name="screenshot", attachment_type=allure.attachment_type.PNG)

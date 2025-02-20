@@ -1,8 +1,10 @@
+from selenium.common import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from pages.base_page import BasePage
 from utils.logger import test_logger
+import time
 
 
 class ParfumPage(BasePage):
@@ -31,8 +33,6 @@ class ParfumPage(BasePage):
             test_logger.info("Accepted cookies.")
             self.click_element(self.PARFUM_BUTTON)
             test_logger.info("Clicked on 'Parfum' button.")
-            self.click_element(self.POPUP_CLOSE)
-            test_logger.info("Closed popup (if displayed).")
         except Exception as e:
             test_logger.error(f"Error in accept_cookies(): {e}")
             raise
@@ -51,20 +51,37 @@ class ParfumPage(BasePage):
                 continue
             try:
                 self.wait_for_page_load()
-
-                filter_locator = (By.XPATH, self.PRODUCT_SELECT[1].format(filter_name))
-                filter_element = wait.until(EC.element_to_be_clickable(filter_locator))
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", filter_element)
-                filter_element.click()
-                test_logger.info(f"Selected filter: {filter_name}")
-                self.wait_for_page_load()
-                value_locator = (By.XPATH, self.PRODUCT_BY_VALUE[1].format(value))
-                value_element = wait.until(EC.element_to_be_clickable(value_locator))
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", value_element)
-                value_element.click()
-                test_logger.info(f"Applied filter value: {value}")
-                assert wait.until(EC.presence_of_element_located(self.PRODUCT_NAME_TEXT)), \
-                    f"Filter {value} was not successfully applied."
+                for _ in range(3):
+                    try:
+                        filter_locator = (By.XPATH, self.PRODUCT_SELECT[1].format(filter_name))
+                        filter_element = wait.until(EC.element_to_be_clickable(filter_locator))
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", filter_element)
+                        filter_element.click()
+                        test_logger.info(f"Selected filter: {filter_name}")
+                        self.wait_for_page_load()
+                        break
+                    except StaleElementReferenceException:
+                        test_logger.warning(f"Stale element for filter: {filter_name}. Retrying...")
+                value_element = None
+                for _ in range(3):
+                    try:
+                        value_locator = (By.XPATH, self.PRODUCT_BY_VALUE[1].format(value))
+                        value_element = wait.until(EC.element_to_be_clickable(value_locator))
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", value_element)
+                        value_element.click()
+                        self.wait_for_page_load()
+                        test_logger.info(f"Applied filter value: {value}")
+                        break
+                    except StaleElementReferenceException:
+                        test_logger.warning(f"Stale element for value: {value}. Retrying...")
+                if value_element is None:
+                    raise TimeoutException(f"Failed to locate and click value '{value}' after retries.")
+                applied_filter_locator = (By.XPATH, self.PRODUCT_NAME_TEXT[1].format(value))
+                applied_filter_element = wait.until(EC.presence_of_element_located(applied_filter_locator))
+                applied_filter_text = self.driver.execute_script("return arguments[0].textContent;", applied_filter_element)
+                if applied_filter_text != value:
+                    raise AssertionError(f"Expected filter '{value}', but found '{applied_filter_text}'.")
+                test_logger.info(f"Verified applied filter: {applied_filter_text}")
                 if index < len(filter_items) - 1:
                     wait.until(EC.staleness_of(value_element))
             except Exception as e:
